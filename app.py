@@ -7,529 +7,375 @@ from scipy.stats import skew, kurtosis
 import plotly.express as px
 import plotly.graph_objects as go
 
-# ---------------------------
+# ------------------------------------------------
 # PAGE CONFIG
-# ---------------------------
+# ------------------------------------------------
 
 st.set_page_config(
-    page_title="FinSight AI",
+    page_title="MASIS AI",
     page_icon="📈",
     layout="wide"
 )
 
-# ---------------------------
+# ------------------------------------------------
 # CUSTOM CSS
-# ---------------------------
+# ------------------------------------------------
 
 st.markdown("""
 <style>
 
 .main {
-    background-color: #0E1117;
+    background-color:#f8fafc;
 }
 
-.stMetric {
-    background-color: #1C2333;
-    padding:10px;
+.block-container {
+    padding-top:1rem;
+}
+
+.title{
+    text-align:center;
+    color:#0f172a;
+    font-size:42px;
+    font-weight:bold;
+}
+
+.subtitle{
+    text-align:center;
+    color:#64748b;
+    font-size:18px;
+}
+
+.footer{
+    text-align:center;
+    color:gray;
+    margin-top:40px;
+}
+
+.metric-box{
+    background:white;
+    padding:15px;
     border-radius:15px;
-}
-
-h1,h2,h3 {
-    color:white;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------
+# ------------------------------------------------
 # HEADER
-# ---------------------------
+# ------------------------------------------------
 
-st.title("🚀 FinSight AI")
-st.subheader("Advanced Stock Analysis Platform")
+st.markdown(
+"""
+<div class='title'>
+MASIS AI
+</div>
+<div class='subtitle'>
+Market Analysis & Strategic Intelligence System
+</div>
+""",
+unsafe_allow_html=True
+)
 
-# ---------------------------
-# SIDEBAR EDUCATION PANEL
-# ---------------------------
+# ------------------------------------------------
+# SIDEBAR
+# ------------------------------------------------
 
 with st.sidebar:
 
-    st.header("📚 Learn")
+    st.header("📚 Learning Center")
 
-    st.markdown("""
+    st.write("""
 ### Histogram
-Shows return distribution.
+Shows distribution of returns.
+
+### CAGR
+Annual growth rate.
 
 ### Volatility
-Measures price fluctuations.
-
-### Standard Deviation
 Measures risk.
 
-### Skewness
-Shows return asymmetry.
-
-### Kurtosis
-Shows extreme events.
+### Sharpe Ratio
+Risk-adjusted return.
 
 ### Monte Carlo
-Forecasts possible future prices.
+Future simulation based prediction.
+
+### Probability of Gain
+Chance that price increases in future.
 """)
 
-# ---------------------------
-# STOCK SEARCH
-# ---------------------------
+    st.info("""
+Designed by Mamoor Hayat
+
+All Rights Reserved ©
+""")
+
+# ------------------------------------------------
+# USER INPUT
+# ------------------------------------------------
 
 ticker = st.text_input(
-    "Enter Stock Symbol",
-    value="NVDA"
+    "Enter Stock / Coin Symbol",
+    "AAPL"
 )
+
+# ------------------------------------------------
+# DOWNLOAD DATA
+# ------------------------------------------------
 
 if ticker:
 
     try:
 
-        stock = yf.Ticker(ticker)
-
-        data = stock.history(period="5y")
+        data = yf.download(
+            ticker,
+            period="5y",
+            auto_adjust=True
+        )
 
         if data.empty:
-            st.error("No data found.")
+            st.error("Ticker not found.")
             st.stop()
 
-        current_price = data["Close"].iloc[-1]
+        close = data["Close"]
 
-        st.success(f"Current Price: ${current_price:.2f}")
+        st.success(f"Data loaded successfully for {ticker}")
 
-        # --------------------
-        # PRICE CHART
-        # --------------------
-
-        fig = px.line(
-            data,
-            y="Close",
-            title=f"{ticker} Price History"
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-        # --------------------
-        # INVESTMENT RETURNS
-        # --------------------
+        # ----------------------------------------
+        # INVESTMENT ANALYSIS
+        # ----------------------------------------
 
         st.header("💰 Investment Growth")
 
         periods = {
-            "1 Year":"1y",
-            "2 Years":"2y",
-            "3 Years":"3y",
-            "4 Years":"4y",
-            "5 Years":"5y"
+            "1 Year":252,
+            "2 Years":504,
+            "3 Years":756,
+            "4 Years":1008,
+            "5 Years":1260
         }
 
-        growth_rows = []
+        investment_results=[]
 
-        for label, period in periods.items():
+        current_price=close.iloc[-1]
 
-            hist = stock.history(period=period)
+        for label,days in periods.items():
 
-            if len(hist) > 0:
+            if len(close)>=days:
 
-                start_price = hist["Close"].iloc[0]
-                end_price = hist["Close"].iloc[-1]
+                old_price=close.iloc[-days]
 
-                value = 100 * (end_price / start_price)
+                value=(100/current_price)*current_price
 
-                profit = value - 100
+                growth=(current_price/old_price)*100
 
-                growth_rows.append([
-                    label,
-                    round(value,2),
-                    round(profit,2)
-                ])
+                investment_results.append(
+                    [label,100,round(growth,2)]
+                )
 
-        growth_df = pd.DataFrame(
-            growth_rows,
+        invest_df=pd.DataFrame(
+            investment_results,
             columns=[
                 "Period",
-                "Current Value of $100",
-                "Profit/Loss"
+                "Investment",
+                "Current Value"
             ]
         )
 
         st.dataframe(
-            growth_df,
+            invest_df,
             use_container_width=True
         )
 
-# ==========================================
-# BEAUTIFUL HISTOGRAM ANALYSIS
-# ==========================================
+        # ----------------------------------------
+        # HISTOGRAMS
+        # ----------------------------------------
 
-st.header("📊 Return Distribution Intelligence")
+        st.header("📊 Return Histograms")
 
-years = [1, 2, 3, 4, 5]
+        year_map = {
+            "1 Year":252,
+            "2 Years":504,
+            "3 Years":756,
+            "4 Years":1008,
+            "5 Years":1260
+        }
 
-for year in years:
+        for year_name,days in year_map.items():
 
-    st.markdown("---")
+            if len(close)>=days:
 
-    st.subheader(f"📈 {year}-Year Return Analysis")
+                subset=close.tail(days)
 
-    hist = stock.history(period=f"{year}y")
+                returns=subset.pct_change().dropna()*100
 
-    returns = (
-        hist["Close"]
-        .pct_change()
-        .dropna()
-    )
-
-    # -----------------------------
-    # STATISTICS
-    # -----------------------------
-
-    mean_return = returns.mean() * 100
-    std_return = returns.std() * 100
-    skew_value = skew(returns)
-    kurt_value = kurtosis(returns)
-
-    # -----------------------------
-    # BEAUTIFUL HISTOGRAM
-    # -----------------------------
-
-    fig = px.histogram(
-        returns * 100,
-        nbins=50,
-        title=f"{year}-Year Daily Return Distribution",
-        labels={
-            "value": "Daily Return (%)",
-            "count": "Frequency"
-        },
-        marginal="box"
-    )
-
-    fig.update_layout(
-        height=500,
-        template="plotly_dark",
-        title_x=0.5,
-        font=dict(size=14)
-    )
-
-    fig.add_vline(
-        x=mean_return,
-        line_dash="dash",
-        line_width=3,
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-    # -----------------------------
-    # HUMANIZED METRICS
-    # -----------------------------
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.success(
-            f"""
-🟢 Average Daily Return
-
-{mean_return:.2f}%
-
-Meaning:
-On average this stock moved
-{mean_return:.2f}% per day.
-"""
-        )
-
-        risk_text = ""
-
-        if std_return < 1:
-            risk_text = "🟢 Low Volatility"
-
-        elif std_return < 3:
-            risk_text = "🟡 Moderate Volatility"
-
-        else:
-            risk_text = "🔴 High Volatility"
-
-        st.warning(
-            f"""
-{risk_text}
-
-Standard Deviation:
-{std_return:.2f}%
-
-Meaning:
-This indicates how much
-the stock's returns fluctuate.
-"""
-        )
-
-    with col2:
-
-        if skew_value > 0:
-
-            skew_text = """
-🟢 Positive Skew
-
-Historically this stock has
-experienced larger positive
-surprises than negative ones.
-"""
-
-        elif skew_value < 0:
-
-            skew_text = """
-🔴 Negative Skew
-
-Historically this stock has
-experienced larger downside
-surprises.
-"""
-
-        else:
-
-            skew_text = """
-⚪ Neutral Skew
-
-Returns are fairly balanced.
-"""
-
-        st.info(skew_text)
-
-        if kurt_value > 3:
-
-            kurt_text = """
-🔴 High Kurtosis
-
-Most days are normal but
-occasional extreme movements
-have occurred.
-"""
-
-        else:
-
-            kurt_text = """
-🟢 Normal Kurtosis
-
-Price movements are generally
-more predictable.
-"""
-
-        st.error(kurt_text)
-
-    # -----------------------------
-    # AI SUMMARY
-    # -----------------------------
-
-    if (
-        mean_return > 0
-        and std_return < 3
-        and skew_value > 0
-    ):
-
-        summary = """
-🤖 AI Analysis
-
-This stock shows healthy historical
-returns, manageable volatility and
-favorable upside characteristics.
-
-Suitable for investors seeking
-growth with moderate risk.
-"""
-
-    elif mean_return > 0:
-
-        summary = """
-🤖 AI Analysis
-
-The stock has generated positive
-returns historically but investors
-should monitor volatility closely.
-"""
-
-    else:
-
-        summary = """
-🤖 AI Analysis
-
-Historical performance has been
-weak and risk-adjusted returns
-appear less attractive.
-"""
-
-    st.info(summary)
-
-        # --------------------
-        # BUY / SELL ENGINE
-        # --------------------
-
-        st.header("🧠 AI Probability Engine")
-
-        returns = (
-            data["Close"]
-            .pct_change()
-            .dropna()
-        )
-
-        positive_days = (
-            returns > 0
-        ).mean()
-
-        probability_up = (
-            positive_days * 100
-        )
-
-        annual_return = (
-            (
-                current_price /
-                data["Close"].iloc[0]
-            ) - 1
-        ) * 100
-
-        volatility = (
-            returns.std() * np.sqrt(252)
-        ) * 100
-
-        score = 50
-
-        if annual_return > 20:
-            score += 15
-
-        if probability_up > 55:
-            score += 15
-
-        if volatility < 40:
-            score += 10
-
-        score = min(score,100)
-
-        c1,c2,c3 = st.columns(3)
-
-        c1.metric(
-            "Probability Up",
-            f"{probability_up:.1f}%"
-        )
-
-        c2.metric(
-            "Annual Return",
-            f"{annual_return:.1f}%"
-        )
-
-        c3.metric(
-            "AI Score",
-            score
-        )
-
-        if score >= 80:
-            st.success(
-                "🟢 Strong Buy Candidate"
-            )
-
-        elif score >= 65:
-            st.info(
-                "🔵 Moderate Buy Candidate"
-            )
-
-        elif score >= 50:
-            st.warning(
-                "🟡 Hold / Wait"
-            )
-
-        else:
-            st.error(
-                "🔴 Avoid Currently"
-            )
-
-        # --------------------
-        # MONTE CARLO
-        # --------------------
-
-        st.header("🔮 Monte Carlo Forecast")
-
-        returns = (
-            data["Close"]
-            .pct_change()
-            .dropna()
-        )
-
-        simulations = 1000
-        days = 252
-
-        mean = returns.mean()
-        std = returns.std()
-
-        results = []
-
-        for _ in range(simulations):
-
-            prices = [current_price]
-
-            for _ in range(days):
-
-                shock = np.random.normal(
-                    mean,
-                    std
+                colors=np.where(
+                    returns>=0,
+                    "Profit",
+                    "Loss"
                 )
 
-                prices.append(
-                    prices[-1] *
-                    (1 + shock)
+                hist_df=pd.DataFrame({
+                    "Return":returns,
+                    "Type":colors
+                })
+
+                fig=px.histogram(
+                    hist_df,
+                    x="Return",
+                    color="Type",
+                    nbins=50,
+                    title=f"{ticker} - {year_name}",
+                    barmode="overlay"
                 )
 
-            results.append(
-                prices[-1]
-            )
+                fig.update_layout(
+                    height=500
+                )
 
-        expected = np.mean(results)
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
 
-        best = np.percentile(
-            results,
-            95
-        )
+        # ----------------------------------------
+        # RISK METRICS
+        # ----------------------------------------
 
-        worst = np.percentile(
-            results,
-            5
-        )
+        returns=close.pct_change().dropna()
 
-        col1,col2,col3 = st.columns(3)
+        cagr=(
+            (close.iloc[-1]/close.iloc[0])
+            **(1/5)-1
+        )*100
+
+        volatility=returns.std()*np.sqrt(252)*100
+
+        sharpe=(returns.mean()/returns.std())*np.sqrt(252)
+
+        st.header("📈 Advanced Analytics")
+
+        col1,col2,col3=st.columns(3)
 
         col1.metric(
-            "Expected Price",
-            f"${expected:.2f}"
+            "CAGR %",
+            round(cagr,2)
         )
 
         col2.metric(
-            "Best Case",
-            f"${best:.2f}"
+            "Volatility %",
+            round(volatility,2)
         )
 
         col3.metric(
-            "Worst Case",
-            f"${worst:.2f}"
+            "Sharpe Ratio",
+            round(sharpe,2)
         )
 
-        fig = px.histogram(
-            results,
-            nbins=50,
-            title="Future Price Distribution"
+        # ----------------------------------------
+        # MONTE CARLO
+        # ----------------------------------------
+
+        st.header("🔮 Future Forecast")
+
+        simulations=10000
+        horizon=252
+
+        mu=returns.mean()
+        sigma=returns.std()
+
+        last_price=close.iloc[-1]
+
+        ending_prices=[]
+
+        for _ in range(simulations):
+
+            future_returns=np.random.normal(
+                mu,
+                sigma,
+                horizon
+            )
+
+            price=last_price
+
+            for r in future_returns:
+                price*=1+r
+
+            ending_prices.append(price)
+
+        ending_prices=np.array(
+            ending_prices
         )
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True
+        gain_prob=(
+            ending_prices>last_price
+        ).mean()*100
+
+        loss_prob=100-gain_prob
+
+        st.metric(
+            "Probability of Gain",
+            f"{gain_prob:.2f}%"
+        )
+
+        st.metric(
+            "Probability of Loss",
+            f"{loss_prob:.2f}%"
+        )
+
+        # ----------------------------------------
+        # SIGNAL
+        # ----------------------------------------
+
+        st.header("🤖 AI Recommendation")
+
+        score=0
+
+        if cagr>10:
+            score+=1
+
+        if sharpe>1:
+            score+=1
+
+        if gain_prob>60:
+            score+=1
+
+        if volatility<40:
+            score+=1
+
+        if score>=3:
+
+            st.success("""
+BUY
+
+Strong growth profile with
+favorable probability metrics.
+""")
+
+        else:
+
+            st.warning("""
+WAIT
+
+Risk-return profile not
+strong enough currently.
+""")
+
+        # ----------------------------------------
+        # COPYRIGHT
+        # ----------------------------------------
+
+        st.markdown(
+        """
+        <div class='footer'>
+        Designed By Mamoor Hayat<br>
+        © 2026 MASIS AI
+        All Rights Reserved
+        </div>
+        """,
+        unsafe_allow_html=True
         )
 
     except Exception as e:
 
-        st.error(e)
+        st.error(str(e))
