@@ -550,7 +550,7 @@ with c2:
         return 'background-color:#fef3c7; color:#92400e'
 
     st.dataframe(
-        df_sig.style.applymap(colour_signal, subset=['Reading']),
+        df_sig.style.map(colour_signal, subset=['Reading']),
         hide_index=True, use_container_width=True
     )
     st.caption(f"🌪️ Annualised Volatility: **{signals['Volatility']}%**")
