@@ -1,612 +1,693 @@
+"""
+╔══════════════════════════════════════════════════════════════════╗
+║          FINTECH STOCK & CRYPTO ANALYZER                        ║
+║          Designed by: Mamoor Hayat                              ║
+║          © All Rights Reserved                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+"""
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from scipy.stats import norm
-import datetime
-# --- PAGE CONFIGURATION ---
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
+
+# ─────────────────────────────────────────────
+# PAGE CONFIG
+# ─────────────────────────────────────────────
 st.set_page_config(
-    page_title="Apex Wealth Analytics | Advanced Asset Intelligence",
+    page_title="FinScope Pro | Stock & Crypto Analyzer",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# --- PREMIUM LIGHT THEME CSS INJECTION ---
+
+# ─────────────────────────────────────────────
+# CUSTOM CSS — LIGHT, MODERN, ATTRACTIVE
+# ─────────────────────────────────────────────
 st.markdown("""
-    <style>
-        /* Import Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        
-        /* Apply fonts globally */
-        html, body, [class*="css"] {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-        
-        /* Main container styling */
-        .main {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        }
-        
-        /* Header bar styling */
-        .header-container {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            padding: 1.5rem 2rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            margin-bottom: 2rem;
-        }
-        
-        .header-title {
-            font-size: 2.2rem;
-            font-weight: 800;
-            background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 0;
-        }
-        
-        .header-subtitle {
-            font-size: 1rem;
-            color: #64748b;
-            margin-top: 0.3rem;
-            font-weight: 500;
-        }
-        /* Metric card styling */
-        .metric-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            border-color: #cbd5e1;
-        }
-        
-        .metric-title {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-        
-        .metric-value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: #0f172a;
-        }
-        
-        .metric-delta {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-top: 0.4rem;
-        }
-        
-        .delta-positive {
-            color: #10b981;
-        }
-        
-        .delta-negative {
-            color: #ef4444;
-        }
-        
-        /* Decision panel styling */
-        .decision-box {
-            border-radius: 20px;
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-            margin-bottom: 2rem;
-        }
-        
-        .decision-buy {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border: 1px solid #bbf7d0;
-        }
-        
-        .decision-sell {
-            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-            border: 1px solid #fecaca;
-        }
-        
-        .decision-hold {
-            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            border: 1px solid #fde68a;
-        }
-        
-        /* Custom side bar styling */
-        .sidebar .sidebar-content {
-            background-color: #ffffff;
-        }
-        
-        /* Theory Guide Styles */
-        .theory-section {
-            background-color: #ffffff;
-            border-radius: 12px;
-            padding: 1.25rem;
-            border-left: 4px solid #3b82f6;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01);
-        }
-        
-        .theory-header {
-            font-weight: 700;
-            color: #1e3a8a;
-            margin-bottom: 0.5rem;
-            font-size: 1rem;
-        }
-        
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem 0;
-            color: #94a3b8;
-            font-size: 0.85rem;
-            border-top: 1px solid #e2e8f0;
-            margin-top: 3rem;
-            font-weight: 500;
-        }
-    </style>
+<style>
+html, body, [class*="css"] {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.stApp {
+    background: linear-gradient(135deg, #f0f4ff 0%, #fafbff 50%, #f5f0ff 100%);
+}
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+    color: #ffffff;
+}
+section[data-testid="stSidebar"] * { color: #e0e0f0 !important; }
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 { color: #a78bfa !important; }
+
+div[data-testid="metric-container"] {
+    background: #ffffff;
+    border: 1px solid #e0e7ff;
+    border-radius: 16px;
+    padding: 18px 22px;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.08);
+    transition: transform 0.2s;
+}
+div[data-testid="metric-container"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(99,102,241,0.15);
+}
+.streamlit-expanderHeader {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: #ffffff !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+}
+.streamlit-expanderContent {
+    background: #ffffff;
+    border: 1px solid #e0e7ff;
+    border-radius: 0 0 10px 10px;
+}
+.stButton > button {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+    color: white !important;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 28px;
+    font-weight: 600;
+    font-size: 15px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(99,102,241,0.45);
+}
+.stAlert { border-radius: 12px !important; }
+.main-title {
+    background: linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%);
+    color: #ffffff;
+    padding: 28px 36px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.2);
+}
+.main-title h1 { color: #a78bfa; margin: 0 0 6px 0; font-size: 2.2rem; }
+.main-title p  { color: #c4b5fd; margin: 0; font-size: 0.95rem; }
+.section-header {
+    background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin: 20px 0 14px 0;
+}
+.verdict-buy {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    border: 2px solid #10b981;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+.verdict-sell {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border: 2px solid #ef4444;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+.verdict-neutral {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+.footer {
+    background: linear-gradient(135deg, #1a1a2e, #0f3460);
+    color: #c4b5fd;
+    padding: 18px 28px;
+    border-radius: 14px;
+    text-align: center;
+    margin-top: 40px;
+    font-size: 0.85rem;
+}
+</style>
 """, unsafe_allow_html=True)
-# --- HELPER FUNCTIONS FOR CALCULATIONS ---
-@st.cache_data(ttl=3600)
-def fetch_ticker_data(ticker_symbol):
-    """Fetches up to 6 years of historical daily data from Yahoo Finance."""
+
+# ─────────────────────────────────────────────
+# HELPER FUNCTIONS
+# ─────────────────────────────────────────────
+
+@st.cache_data(ttl=300)
+def fetch_stock_data(ticker: str, period: str):
     try:
-        ticker = yf.Ticker(ticker_symbol)
-        # Fetching 6 years to ensure we have a solid 5 years of historical base for returns
-        df = ticker.history(period="6y")
-        if df.empty:
-            return None, None
-        
-        # Resolve company/asset name
-        info = ticker.info
-        asset_name = info.get('longName') or info.get('shortName') or ticker_symbol
-        return df, asset_name
-    except Exception as e:
-        return None, None
-def calculate_returns_distribution(df, years):
-    """Filters data for the last N years and computes daily returns."""
-    end_date = df.index[-1]
-    start_date = end_date - pd.DateOffset(years=years)
-    df_filtered = df.loc[start_date:end_date].copy()
-    
-    # Calculate daily percentage returns
-    df_filtered['Daily_Return'] = df_filtered['Close'].pct_change()
-    return df_filtered.dropna(subset=['Daily_Return'])
-def calculate_investment_simulation(df, years, principal=100.0):
-    """Simulates investing $100 exactly N years ago."""
-    current_price = df['Close'].iloc[-1]
-    end_date = df.index[-1]
-    target_date = end_date - pd.DateOffset(years=years)
-    
-    # Find the closest trading day to the target date
-    indexer = df.index.get_indexer([target_date], method='nearest')[0]
-    historical_price = df['Close'].iloc[indexer]
-    historical_date = df.index[indexer].date()
-    
-    multiplier = current_price / historical_price
-    resulting_val = principal * multiplier
-    net_gain = resulting_val - principal
-    pct_gain = (multiplier - 1) * 100
-    
-    return {
-        "historical_date": historical_date,
-        "historical_price": historical_price,
-        "current_price": current_price,
-        "resulting_value": resulting_val,
-        "net_gain": net_gain,
-        "pct_gain": pct_gain
-    }
-def compute_rsi(df, period=14):
-    """Calculates Relative Strength Index."""
-    delta = df['Close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi.iloc[-1]
-def make_recommendation(df_1y, df_full):
-    """Computes recommendation using probability principles & technical metrics."""
-    # 1. Historical Daily Returns probability (using 1 year data)
-    returns = df_1y['Daily_Return'] * 100 # percentage returns
-    mu, std = norm.fit(returns)
-    
-    # Probability of a positive daily return: P(R > 0)
-    # Using the normal survival function (1 - CDF)
-    prob_positive_daily = norm.sf(0, loc=mu, scale=std)
-    
-    # Empirical probability of positive returns
-    empirical_prob = (returns > 0).mean()
-    
-    # Combined probability metric
-    prob_metric = (prob_positive_daily + empirical_prob) / 2.0
-    
-    # 2. Moving Averages (Trend)
-    df_full['SMA_50'] = df_full['Close'].rolling(window=50).mean()
-    df_full['SMA_200'] = df_full['Close'].rolling(window=200).mean()
-    
-    current_price = df_full['Close'].iloc[-1]
-    sma_50 = df_full['SMA_50'].iloc[-1]
-    sma_200 = df_full['SMA_200'].iloc[-1]
-    
-    trend_bullish = current_price > sma_50 and sma_50 > sma_200
-    trend_bearish = current_price < sma_50 and sma_50 < sma_200
-    
-    # 3. Momentum (RSI)
-    rsi_val = compute_rsi(df_full)
-    
-    # 4. Multi-factor Scoring (0 to 100)
-    # Probability component (max 45 pts)
-    # Scale a probability range of [0.45, 0.55] to [0, 45] points
-    prob_score = min(45, max(0, (prob_metric - 0.45) * 450))
-    
-    # Trend component (max 30 pts)
-    trend_score = 0
-    if current_price > sma_50:
-        trend_score += 15
-    if sma_50 > sma_200:
-        trend_score += 15
-        
-    # RSI component (max 25 pts)
-    rsi_score = 0
-    if rsi_val < 30: # Oversold (Bullish Buy Opportunity)
-        rsi_score = 25
-    elif rsi_val >= 30 and rsi_val < 50: # Moderate Bullish
-        rsi_score = 20
-    elif rsi_val >= 50 and rsi_val < 70: # Moderate Bearish
-        rsi_score = 10
-    else: # Overbought (Bearish Sell Opportunity)
-        rsi_score = 0
-        
-    total_score = prob_score + trend_score + rsi_score
-    
-    # Determine Signal
-    if total_score >= 65:
-        signal = "BUY"
-        color_class = "decision-buy"
-        bg_color = "#dcfce7"
-        text_color = "#15803d"
-        desc = "Strong bullish setup driven by strong historical daily win rate, solid upward trend momentum, and favorable relative strength."
-    elif total_score >= 48:
-        signal = "BUY (MODERATE)"
-        color_class = "decision-buy"
-        bg_color = "#f0fdf4"
-        text_color = "#166534"
-        desc = "Moderate buy signal. The asset shows supportive technical foundations but lacks high probabilistic conviction for aggressive entries."
-    elif total_score >= 35:
-        signal = "DON'T BUY (HOLD)"
-        color_class = "decision-hold"
-        bg_color = "#fffbeb"
-        text_color = "#b45309"
-        desc = "Neutral/Hold. Current momentum indicators are mixed. Recommend waiting for a clearer trend breakout or more favorable statistical odds."
-    else:
-        signal = "DON'T BUY (SELL / AVOID)"
-        color_class = "decision-sell"
-        bg_color = "#fef2f2"
-        text_color = "#b91c1c"
-        desc = "Avoid or sell. Technical trend is downward (bearish), momentum is overstretched or weak, and historical return probabilities favor continued losses."
-        
-    return {
-        "score": total_score,
-        "signal": signal,
-        "color_class": color_class,
-        "bg_color": bg_color,
-        "text_color": text_color,
-        "desc": desc,
-        "prob_metric": prob_metric,
-        "rsi": rsi_val,
-        "sma_50": sma_50,
-        "sma_200": sma_200,
-        "current_price": current_price
-    }
-# --- HEADER SECTION ---
-st.markdown("""
-    <div class="header-container">
-        <h1 class="header-title">Apex Wealth Analytics</h1>
-        <div class="header-subtitle">Advanced Quantitative Asset Intelligence & Risk Modeling</div>
-    </div>
-""", unsafe_allow_html=True)
-# --- SIDEBAR (Educational Corner & Inputs) ---
+        tk = yf.Ticker(ticker)
+        df = tk.history(period=period, auto_adjust=True)
+        return df, tk.info
+    except Exception:
+        return None, {}
+
+
+def investment_simulation(df_year: pd.DataFrame):
+    if df_year is None or df_year.empty:
+        return None, None, None
+    start_price = df_year['Close'].iloc[0]
+    end_price   = df_year['Close'].iloc[-1]
+    shares      = 100 / start_price
+    final_val   = shares * end_price
+    profit_loss = final_val - 100
+    pct_return  = (profit_loss / 100) * 100
+    return round(final_val, 2), round(profit_loss, 2), round(pct_return, 2)
+
+
+def calculate_signals(df: pd.DataFrame):
+    signals = {}
+    close = df['Close']
+
+    ma_20  = close.rolling(20).mean().iloc[-1]
+    ma_50  = close.rolling(50).mean().iloc[-1]
+    ma_200 = close.rolling(200).mean().iloc[-1] if len(close) >= 200 else None
+    current = close.iloc[-1]
+
+    signals['MA20']  = "Bullish" if current > ma_20  else "Bearish"
+    signals['MA50']  = "Bullish" if current > ma_50  else "Bearish"
+    signals['MA200'] = ("Bullish" if current > ma_200 else "Bearish") if ma_200 else "N/A"
+
+    delta = close.diff()
+    gain  = delta.clip(lower=0).rolling(14).mean()
+    loss  = (-delta.clip(upper=0)).rolling(14).mean()
+    rs    = gain / loss
+    rsi   = 100 - (100 / (1 + rs)).iloc[-1]
+    signals['RSI'] = round(rsi, 1)
+    if rsi < 30:   signals['RSI_signal'] = "Oversold (Bullish)"
+    elif rsi > 70: signals['RSI_signal'] = "Overbought (Bearish)"
+    else:          signals['RSI_signal'] = "Neutral"
+
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    macd_line   = ema12 - ema26
+    signal_line = macd_line.ewm(span=9, adjust=False).mean()
+    signals['MACD'] = "Bullish" if macd_line.iloc[-1] > signal_line.iloc[-1] else "Bearish"
+
+    bb_mid = close.rolling(20).mean()
+    bb_std = close.rolling(20).std()
+    bb_up  = (bb_mid + 2 * bb_std).iloc[-1]
+    bb_low = (bb_mid - 2 * bb_std).iloc[-1]
+    if current < bb_low:   signals['Bollinger'] = "Below Lower Band (Bullish)"
+    elif current > bb_up:  signals['Bollinger'] = "Above Upper Band (Bearish)"
+    else:                  signals['Bollinger'] = "Within Bands (Neutral)"
+
+    daily_ret = close.pct_change().dropna()
+    signals['Volatility'] = round(daily_ret.std() * np.sqrt(252) * 100, 2)
+
+    score = 0
+    if signals['MA20']  == "Bullish": score += 1
+    if signals['MA50']  == "Bullish": score += 1
+    if signals['MA200'] == "Bullish": score += 1
+    if signals['MACD']  == "Bullish": score += 2
+    if "Bullish" in signals['RSI_signal']: score += 2
+    if "Bullish" in signals['Bollinger']:  score += 1
+    signals['score'] = score
+    return signals
+
+
+def make_histogram(df: pd.DataFrame, ticker: str, period_label: str):
+    df = df.copy()
+    df['Date']   = df.index
+    df['Return'] = df['Close'].pct_change() * 100
+    df['Color']  = df['Return'].apply(lambda x: '#10b981' if x >= 0 else '#ef4444')
+    max_abs = df['Return'].abs().max() or 1
+    df['Opacity'] = df['Return'].abs().apply(lambda x: 0.4 + 0.6 * (x / max_abs))
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=df['Date'],
+        y=df['Close'],
+        marker=dict(
+            color=df['Color'],
+            opacity=df['Opacity'],
+            line=dict(color='rgba(0,0,0,0.05)', width=0.3)
+        ),
+        name='Close Price',
+        hovertemplate=(
+            '<b>%{x|%Y-%m-%d}</b><br>'
+            'Close: $%{y:.2f}<br>'
+            'Day Return: %{customdata:.2f}%<extra></extra>'
+        ),
+        customdata=df['Return']
+    ))
+
+    ma20 = df['Close'].rolling(20).mean()
+    fig.add_trace(go.Scatter(
+        x=df['Date'], y=ma20,
+        mode='lines', name='20-Day MA',
+        line=dict(color='#6366f1', width=2, dash='dot')
+    ))
+
+    fig.update_layout(
+        title=dict(
+            text=f"<b>{ticker.upper()} — {period_label} Price Histogram</b>",
+            font=dict(size=18, color='#1a1a2e'), x=0.02
+        ),
+        xaxis=dict(
+            title='Date',
+            showgrid=True, gridcolor='rgba(99,102,241,0.1)',
+            rangeslider=dict(visible=True, thickness=0.06),
+            rangeselector=dict(
+                buttons=[
+                    dict(count=1, label='1M', step='month', stepmode='backward'),
+                    dict(count=3, label='3M', step='month', stepmode='backward'),
+                    dict(count=6, label='6M', step='month', stepmode='backward'),
+                    dict(step='all', label='All')
+                ],
+                bgcolor='#f0f4ff', activecolor='#6366f1',
+                font=dict(color='#1a1a2e')
+            ),
+            fixedrange=False
+        ),
+        yaxis=dict(
+            title='Price (USD)', showgrid=True,
+            gridcolor='rgba(99,102,241,0.1)',
+            tickprefix='$', fixedrange=False
+        ),
+        legend=dict(
+            orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1,
+            bgcolor='rgba(255,255,255,0.8)', bordercolor='#e0e7ff', borderwidth=1
+        ),
+        plot_bgcolor='#fafbff', paper_bgcolor='#ffffff',
+        margin=dict(l=60, r=20, t=80, b=60),
+        hovermode='x unified', dragmode='zoom', height=430
+    )
+    return fig
+
+
+def investment_bar_chart(results: dict):
+    periods = list(results.keys())
+    finals  = [v['final'] for v in results.values()]
+    profits = [v['profit'] for v in results.values()]
+    colors  = ['#10b981' if p >= 0 else '#ef4444' for p in profits]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=periods, y=finals,
+        marker_color=colors,
+        marker_line=dict(color='rgba(0,0,0,0.1)', width=1),
+        text=[f"${f:.2f}" for f in finals],
+        textposition='outside',
+        hovertemplate='<b>%{x}</b><br>Final: $%{y:.2f}<extra></extra>'
+    ))
+    fig.add_hline(y=100, line_dash='dash', line_color='#6366f1',
+                  annotation_text='Initial $100', annotation_position='right')
+    fig.update_layout(
+        title=dict(text='<b>$100 Investment Simulation per Period</b>',
+                   font=dict(size=17, color='#1a1a2e'), x=0.02),
+        xaxis_title='Period',
+        yaxis=dict(title='Final Value (USD)', tickprefix='$'),
+        plot_bgcolor='#fafbff', paper_bgcolor='#ffffff',
+        height=350, margin=dict(l=60, r=20, t=70, b=50), showlegend=False
+    )
+    return fig
+
+
+# ─────────────────────────────────────────────
+# SIDEBAR
+# ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🔍 Asset Selector")
-    
-    # Suggestions helper
-    popular_symbols = {
-        "Stocks": ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "BRK-B", "JPM", "V"],
-        "Crypto": ["BTC-USD", "ETH-USD", "SOL-USD", "DOGE-USD", "ADA-USD"]
-    }
-    
-    symbol_type = st.radio("Asset Type", ["Stock Ticker", "Crypto / Coin Symbol"])
-    
-    default_ticker = "AAPL" if symbol_type == "Stock Ticker" else "BTC-USD"
-    ticker_input = st.text_input(
-        "Enter yfinance Ticker Symbol",
-        value=default_ticker,
-        help="E.g., AAPL for Apple Inc., BTC-USD for Bitcoin."
-    ).strip().upper()
-    
-    st.markdown("💡 **Popular Suggestions:**")
-    st.caption(", ".join(popular_symbols["Stocks" if symbol_type == "Stock Ticker" else "Crypto"]))
-    
+    st.markdown("## 🔍 FinScope Pro")
     st.markdown("---")
-    
-    # THEORETICAL CORNER
-    st.markdown("### 🎓 Theoretical Corner")
-    st.markdown("Welcome, Newbie! Here is a simple breakdown of the advanced quantitative principles used in this application:")
-    
-    with st.expander("📊 1. Return Histograms", expanded=True):
+    ticker_input = st.text_input(
+        "Enter Stock / Crypto Ticker",
+        value="",
+        placeholder="e.g. AAPL, BTC-USD, TSLA"
+    ).strip().upper()
+
+    st.markdown("---")
+    st.markdown("### 📖 How to Use")
+    st.markdown("""
+**Stocks:** Type the ticker symbol.
+- `AAPL` → Apple Inc.
+- `TSLA` → Tesla
+- `MSFT` → Microsoft
+- `GOOGL` → Alphabet
+- `AMZN` → Amazon
+
+**Crypto (add -USD):**
+- `BTC-USD` → Bitcoin
+- `ETH-USD` → Ethereum
+- `SOL-USD` → Solana
+- `BNB-USD` → Binance Coin
+
+**Find any ticker:** [finance.yahoo.com](https://finance.yahoo.com)
+    """)
+    st.markdown("---")
+    st.markdown("### 🧠 Glossary")
+    with st.expander("📘 Key Terms"):
         st.markdown("""
-        **What it is:** A histogram splits the historical daily returns into range bins and counts how many times returns fell into each range.
-        
-        **Why it matters:** It visualizes **volatility** and **symmetry**. A wider histogram means high volatility (riskier). If it has a longer right tail, the asset has a positive skew (tends to have large gains).
-        
-        **Color Coding:** 
-        - <span style="color:#10b981; font-weight:bold;">Green bars</span> represent profitable daily returns (> 0%).
-        - <span style="color:#ef4444; font-weight:bold;">Red bars</span> represent loss days (< 0%).
-        """, unsafe_allow_html=True)
-        
-    with st.expander("📈 2. Fitted Probability Curve", expanded=False):
-        st.markdown("""
-        **What it is:** The dashed line is a **Probability Density Function (PDF)** of a fitted Normal Distribution.
-        
-        **Why it matters:** It shows the statistical probability distribution of daily returns. By calculating the area under the curve to the right of 0%, we find the mathematical probability of a positive return day.
+**RSI**: Measures momentum. <30 = oversold (bullish), >70 = overbought (bearish).
+
+**MACD**: Trend-following momentum indicator.
+
+**Moving Average**: Average price over N days. Smooths out noise.
+
+**Bollinger Bands**: Volatility bands ±2σ around a 20-day MA.
+
+**Volatility**: How wildly the price swings (annualised %).
+
+**Bull/Bear**: Bull = rising market; Bear = falling market.
         """)
-        
-    with st.expander("💵 3. Investment Simulation", expanded=False):
-        st.markdown("""
-        **What it is:** A simulation of investing a fixed $100 on the exact trading day 1, 2, 3, 4, or 5 years ago.
-        
-        **Why it matters:** It demonstrates the real-world historical compound growth (or loss) of the asset compared to holding cash.
-        """)
-    with st.expander("🎯 4. Decision Engine", expanded=False):
-        st.markdown("""
-        **What it is:** A probability-weighted recommendations matrix using:
-        
-        1. **Win-rate Probability**: Historical odds of positive return days.
-        2. **RSI (Relative Strength Index)**: Identifies if the asset is overbought (>70, risky) or oversold (<30, bargain).
-        3. **SMAs (Simple Moving Averages)**: Tells us if the long-term trend is pointing up (50-day average > 200-day average).
-        """)
-# --- FETCH DATA ---
-if ticker_input:
-    with st.spinner(f"Loading data for {ticker_input} from Yahoo Finance..."):
-        df, asset_name = fetch_ticker_data(ticker_input)
-        
-    if df is not None and len(df) > 100:
-        # Get historical returns for each period
-        periods = {
-            "5 Years": calculate_returns_distribution(df, 5),
-            "4 Years": calculate_returns_distribution(df, 4),
-            "3 Years": calculate_returns_distribution(df, 3),
-            "2 Years": calculate_returns_distribution(df, 2),
-            "1 Year": calculate_returns_distribution(df, 1),
-        }
-        
-        # Current asset summary metrics
-        current_price = df['Close'].iloc[-1]
-        prev_price = df['Close'].iloc[-2]
-        price_diff = current_price - prev_price
-        price_pct = (price_diff / prev_price) * 100
-        
-        # --- TOP LEVEL DASHBOARD ROW ---
-        col_title, col_metric = st.columns([2, 1])
-        with col_title:
-            st.markdown(f"## {asset_name} (`{ticker_input}`)")
-            st.caption(f"Latest Market Quote: {df.index[-1].strftime('%B %d, %Y')} | Data provided via yfinance API")
-        with col_metric:
-            delta_class = "delta-positive" if price_diff >= 0 else "delta-negative"
-            delta_sign = "+" if price_diff >= 0 else ""
-            st.markdown(f"""
-                <div class="metric-card" style="padding: 1rem 1.5rem; text-align: right;">
-                    <div class="metric-title">Live Closing Price</div>
-                    <div class="metric-value">${current_price:,.2f}</div>
-                    <div class="metric-delta {delta_class}">{delta_sign}${price_diff:,.2f} ({delta_sign}{price_pct:.2f}%) Today</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-        st.write(" ")
-        
-        # --- RECOMMENDATION BLOCK ---
-        st.markdown("### 🤖 Advanced Probabilistic Decision Matrix")
-        rec = make_recommendation(periods["1 Year"], df)
-        
-        decision_html = f"""
-            <div class="decision-box {rec['color_class']}">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                    <div>
-                        <span style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">AI Quantitative Signal</span>
-                        <div style="font-size: 2.2rem; font-weight: 800; color: {rec['text_color']}; margin-top: 0.2rem;">{rec['signal']}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="font-size: 0.85rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Quantitative Score</span>
-                        <div style="font-size: 2.2rem; font-weight: 800; color: {rec['text_color']};">{rec['score']:.1f} / 100</div>
-                    </div>
-                </div>
-                <div style="margin-top: 1rem; font-size: 1.05rem; color: #334155; font-weight: 500; line-height: 1.5;">
-                    <strong>Decision Basis:</strong> {rec['desc']}
-                </div>
-                <hr style="margin: 1.25rem 0; border: 0; border-top: 1px solid rgba(0,0,0,0.08);" />
-                <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-                    <div>
-                        <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Daily Return Win Rate:</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-left: 0.3rem;">{rec['prob_metric']*100:.2f}%</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">RSI (14-day):</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-left: 0.3rem;">{rec['rsi']:.1f}</span>
-                    </div>
-                    <div>
-                        <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Moving Averages (50 / 200 SMA):</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-left: 0.3rem;">
-                            ${rec['sma_50']:,.2f} / ${rec['sma_200']:,.2f} 
-                            {"(Bullish Golden Cross)" if rec['sma_50'] > rec['sma_200'] else "(Bearish Death Cross)"}
-                        </span>
-                    </div>
-                </div>
-            </div>
-        """
-        st.markdown(decision_html, unsafe_allow_html=True)
-        
-        # --- $100 INVESTMENT SIMULATION ---
-        st.markdown("### 💵 Historical Investment Simulation")
-        st.markdown("What would a **$100 investment** made in the past be worth today compared to the current market condition?")
-        
-        simulations = {}
-        for y in [5, 4, 3, 2, 1]:
-            simulations[y] = calculate_investment_simulation(df, y)
-            
-        cols = st.columns(5)
-        for i, y in enumerate([1, 2, 3, 4, 5]):
-            sim = simulations[y]
-            gain_loss_class = "delta-positive" if sim['net_gain'] >= 0 else "delta-negative"
-            gain_loss_sign = "+" if sim['net_gain'] >= 0 else ""
-            
-            with cols[i]:
-                st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-title">{y} Year{'s' if y > 1 else ''} Ago ({y*12}M)</div>
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.5rem;">Invested on {sim['historical_date'].strftime('%b %Y')}</div>
-                        <div class="metric-value">${sim['resulting_value']:,.2f}</div>
-                        <div class="metric-delta {gain_loss_class}">
-                            {gain_loss_sign}${abs(sim['net_gain']):,.2f} ({gain_loss_sign}{sim['pct_gain']:.2f}%)
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-        
-        st.write(" ")
-        st.write(" ")
-        
-        # --- INTERACTIVE RETURN HISTOGRAMS ---
-        st.markdown("### 📊 Interactive Return Distribution Histograms")
-        st.markdown(
-            "Visualizing the statistical probability density of daily returns. "
-            "Use the controls on the upper right of the chart to **zoom in/out** dynamically without any quality loss."
-        )
-        
-        # Create tabs for each year
-        hist_tabs = st.tabs(["5 Years Data", "4 Years Data", "3 Years Data", "2 Years Data", "1 Year Data"])
-        
-        for idx, (label, period_df) in enumerate(periods.items()):
-            with hist_tabs[idx]:
-                returns = period_df['Daily_Return'] * 100 # convert to percent
-                
-                # Fit Normal Distribution
-                mu, std = norm.fit(returns)
-                
-                # Plotly Chart Setup
-                fig = go.Figure()
-                
-                # Compute return ranges for bins
-                ret_min, ret_max = returns.min(), returns.max()
-                
-                # Dynamic Bin size
-                bin_width = max(0.05, (ret_max - ret_min) / 45)
-                
-                # Negative Returns Histogram
-                fig.add_trace(go.Histogram(
-                    x=returns[returns < 0],
-                    name="Loss Day (Negative Return)",
-                    histnorm='density',
-                    xbins=dict(start=ret_min, end=0, size=bin_width),
-                    marker=dict(
-                        color='rgba(239, 83, 80, 0.75)',  # soft coral red
-                        line=dict(color='rgba(239, 83, 80, 1)', width=0.5)
-                    ),
-                    autobinx=False,
-                    hovertemplate="Daily Return Bin: %{x:.2f}%<br>Probability Density: %{y:.4f}<extra></extra>"
-                ))
-                
-                # Positive Returns Histogram
-                fig.add_trace(go.Histogram(
-                    x=returns[returns >= 0],
-                    name="Profit Day (Positive Return)",
-                    histnorm='density',
-                    xbins=dict(start=0, end=ret_max, size=bin_width),
-                    marker=dict(
-                        color='rgba(38, 166, 154, 0.75)',  # soft teal green
-                        line=dict(color='rgba(38, 166, 154, 1)', width=0.5)
-                    ),
-                    autobinx=False,
-                    hovertemplate="Daily Return Bin: %{x:.2f}%<br>Probability Density: %{y:.4f}<extra></extra>"
-                ))
-                
-                # Add Fitted normal curve PDF
-                x_curve = np.linspace(ret_min, ret_max, 300)
-                y_curve = norm.pdf(x_curve, mu, std)
-                
-                fig.add_trace(go.Scatter(
-                    x=x_curve,
-                    y=y_curve,
-                    mode='lines',
-                    name='Fitted Probability density (Normal Fit)',
-                    line=dict(color='rgba(59, 130, 246, 0.85)', width=3, dash='dash')
-                ))
-                
-                # Layout formatting
-                fig.update_layout(
-                    barmode='overlay',
-                    title=dict(
-                        text=f"Daily Returns Distribution - Last {label} (Daily % Change)",
-                        font=dict(size=16, family="Plus Jakarta Sans", color="#1e293b")
-                    ),
-                    xaxis=dict(
-                        title="Daily Percentage Return (%)",
-                        gridcolor="rgba(226, 232, 240, 0.6)",
-                        zerolinecolor="rgba(15, 23, 42, 0.3)",
-                        zerolinewidth=1.5
-                    ),
-                    yaxis=dict(
-                        title="Probability Density",
-                        gridcolor="rgba(226, 232, 240, 0.6)"
-                    ),
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.02,
-                        xanchor="right",
-                        x=1
-                    ),
-                    plot_bgcolor='rgba(255,255,255,1)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(l=40, r=40, t=80, b=40),
-                    hovermode='closest'
-                )
-                
-                # Show in Streamlit
-                st.plotly_chart(fig, use_container_width=True, config={'responsive': True, 'displaylogo': False})
-                
-                # Quick period statistics below each chart
-                win_rate = (returns >= 0).mean() * 100
-                avg_daily = returns.mean()
-                ann_volatility = returns.std() * np.sqrt(252)
-                
-                col_s1, col_s2, col_s3 = st.columns(3)
-                with col_s1:
-                    st.metric("Historical Win Rate (Positive Return Days)", f"{win_rate:.2f}%")
-                with col_s2:
-                    st.metric("Average Daily Return", f"{avg_daily:+.4f}%")
-                with col_s3:
-                    st.metric("Annualized Historical Volatility", f"{ann_volatility:.2f}%")
-                    
-    else:
-        st.error(f"❌ Could not retrieve active history for symbol '{ticker_input}'. Please check the symbol is correct on Yahoo Finance (e.g. AAPL, MSFT, BTC-USD, ETH-USD) and try again.")
-else:
-    st.info("ℹ️ Please enter a valid stock or cryptocurrency symbol in the sidebar to run the analysis.")
-# --- FOOTER SECTION ---
+
+    st.markdown("---")
+    st.markdown("""
+<div style='text-align:center; font-size:0.75rem; color:#a78bfa;'>
+Designed by <b>Mamoor Hayat</b><br>
+© All Rights Reserved
+</div>
+""", unsafe_allow_html=True)
+    analyze_btn = st.button("🚀 Analyze", use_container_width=True)
+
+
+# ─────────────────────────────────────────────
+# MAIN AREA
+# ─────────────────────────────────────────────
 st.markdown("""
-    <div class="footer">
-        Designed by <strong>Mamoor Hayat</strong>. All Rights Reserved &copy; 2026.<br>
-        <span style="font-size:0.75rem; color:#cbd5e1;">Disclaimer: All analytical computations are probabilistic and for informational purposes only. Do not treat as definitive financial advice.</span>
+<div class='main-title'>
+  <h1>📈 FinScope Pro — Stock & Crypto Analyzer</h1>
+  <p>Advanced technical analysis · Investment simulation · Buy/Sell signals · Designed by <b>Mamoor Hayat</b> · © All Rights Reserved</p>
+</div>
+""", unsafe_allow_html=True)
+
+if not analyze_btn or not ticker_input:
+    c1, c2, c3 = st.columns(3)
+    for col, icon, title, desc in [
+        (c1, "📊", "5-Year Histograms",
+         "Interactive bar charts with zoom/pan for 1–5 year windows. Green = up days, Red = down days."),
+        (c2, "💰", "Investment Simulation",
+         "See how $100 invested at the start of each period would have grown or shrunk by today."),
+        (c3, "🤖", "Buy / Hold / Sell Signal",
+         "6 technical indicators combined into a probability-based recommendation."),
+    ]:
+        col.markdown(f"""
+<div style='background:#fff; border:1px solid #e0e7ff; border-radius:14px;
+            padding:22px; text-align:center; box-shadow:0 4px 16px rgba(99,102,241,0.07);'>
+<div style='font-size:2.5rem;'>{icon}</div>
+<h4 style='color:#6366f1; margin:8px 0 6px;'>{title}</h4>
+<p style='color:#64748b; font-size:0.85rem; margin:0;'>{desc}</p>
+</div>""", unsafe_allow_html=True)
+    st.info("👈  Enter a **stock ticker** or **crypto symbol** in the sidebar and click **🚀 Analyze** to begin!")
+    st.markdown("""
+<div class='footer'>
+  <b>FinScope Pro</b> · Designed & Developed by <b>Mamoor Hayat</b><br>
+  © All Rights Reserved · For Educational Purposes Only · Not Financial Advice<br>
+  <span style='font-size:0.75rem; color:#7c3aed;'>Powered by yFinance · Plotly · Streamlit</span>
+</div>
+""", unsafe_allow_html=True)
+    st.stop()
+
+# ── FETCH DATA ───────────────────────────────
+with st.spinner(f"Fetching data for **{ticker_input}** ..."):
+    df_5y, info = fetch_stock_data(ticker_input, "5y")
+
+if df_5y is None or df_5y.empty:
+    st.error(f"❌ No data found for **{ticker_input}**. Please check the symbol and try again.")
+    st.stop()
+
+# ── COMPANY KPIs ─────────────────────────────
+name      = info.get('longName', ticker_input)
+sector    = info.get('sector', info.get('category', '—'))
+mktcap    = info.get('marketCap')
+mktcap_s  = f"${mktcap/1e9:.2f}B" if mktcap else "—"
+current_price = df_5y['Close'].iloc[-1]
+prev_price    = df_5y['Close'].iloc[-2]
+day_change    = ((current_price - prev_price) / prev_price) * 100
+
+st.markdown(f"<div class='section-header'>🏢 {name} ({ticker_input})</div>", unsafe_allow_html=True)
+k1, k2, k3, k4, k5 = st.columns(5)
+k1.metric("Current Price",  f"${current_price:.2f}", f"{day_change:+.2f}%")
+k2.metric("Market Cap",     mktcap_s)
+k3.metric("Sector / Type",  sector)
+k4.metric("52W High",       f"${df_5y['Close'].tail(252).max():.2f}")
+k5.metric("52W Low",        f"${df_5y['Close'].tail(252).min():.2f}")
+
+# ── BUILD PERIOD SLICES ──────────────────────
+today = datetime.now()
+periods = {
+    "5 Years": df_5y,
+    "4 Years": df_5y[df_5y.index >= (today - timedelta(days=4*365))],
+    "3 Years": df_5y[df_5y.index >= (today - timedelta(days=3*365))],
+    "2 Years": df_5y[df_5y.index >= (today - timedelta(days=2*365))],
+    "1 Year":  df_5y[df_5y.index >= (today - timedelta(days=365))],
+}
+
+# ─────────────────────────────────────────────
+# SECTION 1 — HISTOGRAMS
+# ─────────────────────────────────────────────
+st.markdown(
+    "<div class='section-header'>📊 Interactive Price Histograms "
+    "(Scroll to Zoom · Click & Drag to Pan · Range Slider below each chart)</div>",
+    unsafe_allow_html=True
+)
+st.caption("🟢 Green = up day  |  🔴 Red = down day  |  Deeper colour = larger move  |  Purple dotted line = 20-day MA")
+
+tabs = st.tabs(["📅 5 Years", "📅 4 Years", "📅 3 Years", "📅 2 Years", "📅 1 Year"])
+for tab, (label, df_p) in zip(tabs, periods.items()):
+    with tab:
+        if df_p.empty:
+            st.warning(f"Not enough data for {label}.")
+            continue
+        fig = make_histogram(df_p, ticker_input, label)
+        st.plotly_chart(fig, use_container_width=True, config={
+            'scrollZoom': True,
+            'displayModeBar': True,
+            'toImageButtonOptions': {'format': 'png', 'scale': 2}
+        })
+
+# ─────────────────────────────────────────────
+# SECTION 2 — INVESTMENT SIMULATION
+# ─────────────────────────────────────────────
+st.markdown(
+    "<div class='section-header'>💰 $100 Investment Simulation — What if you had invested?</div>",
+    unsafe_allow_html=True
+)
+st.caption("How much would **$100** invested at the **start** of each period be worth **today**?")
+
+sim_results = {}
+inv_cols = st.columns(5)
+for col, (label, df_p) in zip(inv_cols, periods.items()):
+    final, profit, pct = investment_simulation(df_p)
+    if final is None:
+        continue
+    sim_results[label] = {'final': final, 'profit': profit, 'pct': pct}
+    emoji = "🟢" if profit >= 0 else "🔴"
+    delta_str = f"+${profit:.2f}" if profit >= 0 else f"-${abs(profit):.2f}"
+    col.metric(
+        label=f"{emoji} {label}",
+        value=f"${final:.2f}",
+        delta=f"{delta_str} ({pct:+.1f}%)"
+    )
+
+if sim_results:
+    st.plotly_chart(
+        investment_bar_chart(sim_results),
+        use_container_width=True,
+        config={'scrollZoom': True}
+    )
+
+# ─────────────────────────────────────────────
+# SECTION 3 — TECHNICAL SIGNALS & BUY/SELL
+# ─────────────────────────────────────────────
+st.markdown(
+    "<div class='section-header'>🤖 Technical Analysis & Buy / Hold / Sell Recommendation</div>",
+    unsafe_allow_html=True
+)
+
+signals  = calculate_signals(df_5y.tail(500))
+score    = signals['score']
+pct_bull = round((score / 8) * 100, 1)
+
+if pct_bull >= 65:
+    verdict, vc, vi = "BUY 🟢",        "verdict-buy",     "✅"
+elif pct_bull <= 35:
+    verdict, vc, vi = "AVOID / SELL 🔴","verdict-sell",    "⛔"
+else:
+    verdict, vc, vi = "HOLD / WAIT 🟡", "verdict-neutral", "⚠️"
+
+bar_color = "#10b981" if pct_bull >= 65 else "#ef4444" if pct_bull <= 35 else "#f59e0b"
+
+c1, c2 = st.columns([1, 2])
+with c1:
+    st.markdown(f"""
+<div class='{vc}'>
+  <div style='font-size:1.1rem; font-weight:600; color:#374151;'>Overall Signal</div>
+  <div style='font-size:2.2rem; font-weight:800; margin:8px 0;'>{vi} {verdict}</div>
+  <div style='font-size:1rem; color:#374151;'>Bullish Score: <b>{score}/8</b> ({pct_bull}%)</div>
+  <div style='margin-top:10px;'>
+    <div style='background:#e0e7ff; border-radius:20px; height:12px;'>
+      <div style='background:{bar_color}; width:{pct_bull}%; height:12px; border-radius:20px;'></div>
     </div>
+    <div style='display:flex; justify-content:space-between; font-size:0.7rem; color:#6b7280; margin-top:4px;'>
+      <span>Bearish 0%</span><span>Neutral 50%</span><span>Bullish 100%</span>
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
+
+with c2:
+    sig_data = {
+        'Indicator': ['MA (20-day)', 'MA (50-day)', 'MA (200-day)', 'MACD', 'RSI', 'Bollinger Bands'],
+        'Reading': [
+            signals['MA20'], signals['MA50'], signals['MA200'],
+            signals['MACD'],
+            f"{signals['RSI']} — {signals['RSI_signal']}",
+            signals['Bollinger']
+        ]
+    }
+    df_sig = pd.DataFrame(sig_data)
+
+    def colour_signal(val):
+        if 'Bullish' in str(val): return 'background-color:#d1fae5; color:#065f46'
+        if 'Bearish' in str(val): return 'background-color:#fee2e2; color:#991b1b'
+        return 'background-color:#fef3c7; color:#92400e'
+
+    st.dataframe(
+        df_sig.style.applymap(colour_signal, subset=['Reading']),
+        hide_index=True, use_container_width=True
+    )
+    st.caption(f"🌪️ Annualised Volatility: **{signals['Volatility']}%**")
+
+# ─────────────────────────────────────────────
+# SECTION 4 — BEGINNER GUIDE
+# ─────────────────────────────────────────────
+st.markdown(
+    "<div class='section-header'>📘 Complete Beginner's Guide — Everything Explained</div>",
+    unsafe_allow_html=True
+)
+
+with st.expander("🔍 Understanding the Histograms", expanded=False):
+    st.markdown("""
+**What is this histogram?**
+Each vertical bar represents the *closing price* of the stock on one trading day.
+
+| Colour | Meaning |
+|--------|---------|
+| 🟢 **Green** | Price closed *higher* than the previous day (UP day) |
+| 🔴 **Red**   | Price closed *lower* than the previous day (DOWN day) |
+| Deeper shade | Larger price move that day |
+| Purple dotted | 20-Day Moving Average (smoothed trend line) |
+
+**Zoom & Pan controls:**
+- 🖱️ Scroll wheel → zoom in / out (no quality loss — SVG vector rendering)
+- Click & drag → pan left/right
+- Range-selector buttons (1M / 3M / 6M / All) → quick jumps
+- Drag the slider bar at the bottom → navigate any date range
+
+**Why multiple time periods?**
+Looking at 5 years gives the big picture. 1 year shows recent momentum. Comparing them helps you see whether the current trend is an exception or the norm.
+    """)
+
+with st.expander("💰 Understanding the Investment Simulation", expanded=False):
+    st.markdown("""
+**What does this tell me?**
+It answers: *"If I had put $100 into this stock/coin at the start of each window, how much would I have today?"*
+
+**The maths (simplified):**
+1. Find the *opening price* at the start of the period.
+2. Calculate how many shares $100 would have bought (= 100 ÷ start price).
+3. Multiply those shares by *today's price* → that's your portfolio value.
+4. Subtract $100 → profit or loss.
+
+**Example:** BTC-USD was $20,000 two years ago. $100 buys 0.005 BTC.
+Today BTC is $60,000. Your 0.005 BTC = **$300** → profit of **$200 (+200%)**.
+
+⚠️ **Disclaimer:** This ignores brokerage fees, taxes, dividends, and stock splits.
+It is illustrative only — not a guarantee of future returns.
+    """)
+
+with st.expander("🤖 Understanding Buy / Hold / Sell Signals", expanded=False):
+    st.markdown("""
+The recommendation is built from **6 technical indicators** totalling a max score of **8 bullish points**.
+
+| Score Band | Signal | Meaning |
+|-----------|--------|---------|
+| 65–100 % | ✅ BUY | Most indicators point upward |
+| 36–64 %  | ⚠️ HOLD/WAIT | Mixed signals — sit on the fence |
+| 0–35 %   | ⛔ AVOID/SELL | Most indicators point downward |
+
+---
+**MA (Moving Average)**
+Average closing price over the last N days. If today's price is *above* the MA, it suggests the stock is in an uptrend. Three MAs are checked: 20-day, 50-day, 200-day.
+
+**RSI (Relative Strength Index)**
+Momentum oscillator from 0–100.
+- < 30 → Oversold (potential bargain buy)
+- > 70 → Overbought (potentially risky to enter)
+- 30–70 → Normal range
+
+**MACD (Moving Average Convergence/Divergence)**
+Compares two exponential moving averages (12-day vs 26-day).
+- MACD line crosses *above* signal line → Bullish momentum
+- Crosses *below* → Bearish momentum
+
+**Bollinger Bands**
+Bands set ±2 standard deviations from a 20-day MA.
+- Price near *lower* band → historically tends to bounce up (Bullish)
+- Price near *upper* band → historically tends to pull back (Bearish)
+
+---
+> ⚠️ **Important:** Technical analysis is *probabilistic*, not a crystal ball.
+> This app is for **educational purposes only** and does **NOT** constitute financial advice.
+> Always do your own research (DYOR) and consult a licensed financial advisor before investing.
+    """)
+
+# ─────────────────────────────────────────────
+# SECTION 5 — FULL PRICE CHART
+# ─────────────────────────────────────────────
+st.markdown(
+    "<div class='section-header'>📉 Full 5-Year Price & Volume Chart</div>",
+    unsafe_allow_html=True
+)
+
+fig_line = go.Figure()
+fig_line.add_trace(go.Scatter(
+    x=df_5y.index, y=df_5y['Close'],
+    mode='lines', name='Close Price',
+    line=dict(color='#6366f1', width=2),
+    fill='tozeroy', fillcolor='rgba(99,102,241,0.07)'
+))
+fig_line.add_trace(go.Bar(
+    x=df_5y.index, y=df_5y['Volume'],
+    name='Volume', marker_color='rgba(139,92,246,0.25)',
+    yaxis='y2'
+))
+fig_line.update_layout(
+    yaxis=dict(title='Price (USD)', tickprefix='$', fixedrange=False),
+    yaxis2=dict(title='Volume', overlaying='y', side='right', showgrid=False, fixedrange=False),
+    xaxis=dict(
+        fixedrange=False,
+        rangeslider=dict(visible=True, thickness=0.05),
+        rangeselector=dict(
+            buttons=[
+                dict(count=6, label='6M', step='month', stepmode='backward'),
+                dict(count=1, label='1Y', step='year',  stepmode='backward'),
+                dict(count=3, label='3Y', step='year',  stepmode='backward'),
+                dict(step='all', label='5Y')
+            ]
+        )
+    ),
+    plot_bgcolor='#fafbff', paper_bgcolor='#ffffff',
+    height=400, margin=dict(l=60, r=60, t=30, b=50),
+    legend=dict(orientation='h', y=1.05)
+)
+st.plotly_chart(fig_line, use_container_width=True,
+                config={'scrollZoom': True, 'displayModeBar': True})
+
+# ─────────────────────────────────────────────
+# FOOTER
+# ─────────────────────────────────────────────
+st.markdown("""
+<div class='footer'>
+  <b>FinScope Pro</b> &nbsp;·&nbsp; Designed & Developed by <b>Mamoor Hayat</b><br>
+  © All Rights Reserved &nbsp;·&nbsp; For Educational Purposes Only &nbsp;·&nbsp; Not Financial Advice<br>
+  <span style='font-size:0.75rem; color:#7c3aed;'>Powered by yFinance · Plotly · Streamlit</span>
+</div>
 """, unsafe_allow_html=True)
